@@ -19,3 +19,6 @@ Step2: Bring up the envoy containers using docker-compose
 docker-compose up  
 ```
 
+## Setup
+The particular setup can be briefly summarized in the diagram as shown below
+![Envoy stats monitoring with EFK stack](setup_diagram.png?raw=true "Deployment diagram")
