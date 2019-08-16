@@ -1,0 +1,57 @@
+version: "3.7"
+services:
+
+  edge-envoy:
+    build:
+      context: ./edge-envoy
+      dockerfile: Dockerfile
+    networks:
+      - envoymesh
+    ports:
+      - "9901:9901"
+      - "9090:9090"
+
+  metricsservice:
+    build:
+      context: ./metricsservice
+      dockerfile: Dockerfile
+    networks:
+      envoymesh:
+        aliases:
+          - metricsservice
+    ports: 
+      - "10001:10001"
+  
+  fluentd:
+    build: ./fluentd
+    links:
+      - "elasticsearch"
+    networks:
+      envoymesh:
+        aliases:
+          - fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+
+  elasticsearch:
+    image: elasticsearch:6.8.2
+    networks:
+      - envoymesh
+    expose:
+      - 9200
+    ports:
+      - "9200:9200"
+
+  kibana:
+    image: kibana:6.8.2
+    networks: 
+      - envoymesh
+    links:
+      - "elasticsearch"
+    ports:
+      - "5601:5601"
+
+
+networks:
+  envoymesh: {}
