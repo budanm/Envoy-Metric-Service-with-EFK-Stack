@@ -31,6 +31,18 @@ const envoyMetricsTagPrefix string = "envoy"
 // sends it to fluentd server
 func (s *server) StreamMetrics(mtserver ms.MetricsService_StreamMetricsServer) error {
 
+	//Acquire the logger during the first call
+	if fluentDLogger == nil {
+		fluentdErr := acquireFluentDLogger()
+		if fluentdErr != nil {
+			log.Printf("Error occured for obtaining fluentd logger %v \n", fluentdErr)
+			return fluentdErr
+		} else {
+			log.Printf("Fluentd agent running on : %s : %d \n", fluentDLogger.FluentHost, fluentDLogger.FluentPort)
+		}
+
+	}
+
 	//Receives the metrics from envoy
 	streamMetricsMessage, err := mtserver.Recv()
 	if err != nil {
@@ -60,6 +72,22 @@ func (s *server) StreamMetrics(mtserver ms.MetricsService_StreamMetricsServer) e
 	return nil
 }
 
+// Obtain the fluentd log instance
+func acquireFluentDLogger() error {
+
+	//Implementing retries to obtain fluentd agent
+	//Set up the logger for fluentd
+	log.Println("Attempting to initiate connection to fluentd server................")
+	var fluentdLogerrErr error
+	//5 attempts would be made at a gap of 5 seconds to establish connection with the fluentd service
+	err := retry(5, 5*time.Second, func() (err error) {
+		fluentDLogger, fluentdLogerrErr = fluent.New(fluent.Config{FluentPort: 24224, FluentHost: "fluentd"})
+		return fluentdLogerrErr
+	})
+
+	return err
+}
+
 //Simple retry function. Reference link https://blog.abourget.net/en/2016/01/04/my-favorite-golang-retry-function
 func retry(attempts int, sleep time.Duration, f func() error) (err error) {
 	for i := 0; ; i++ {
@@ -80,23 +108,6 @@ func retry(attempts int, sleep time.Duration, f func() error) (err error) {
 }
 
 func main() {
-
-	var fluentdErr error
-	//Implementing retries to obtain fluentd agent
-	//Set up the logger for fluentd
-	log.Println("Attempting to initiate connection to fluentd server................")
-
-	//5 attempts would be made at a gap of 2 seconds to establish connection with the fluentd service
-	fluentdErr = retry(5, 2*time.Second, func() (err error) {
-		fluentDLogger, fluentdErr = fluent.New(fluent.Config{FluentPort: 24224, FluentHost: "fluentd"})
-		return
-	})
-
-	if fluentdErr != nil {
-		log.Fatalf("Error occured for obtaining fluentd logger %v \n", fluentdErr)
-	}
-
-	log.Printf("Fluentd agent running on : %s : %d \n", fluentDLogger.FluentHost, fluentDLogger.FluentPort)
 
 	// TCP listener on port 10001
 	lis, err := net.Listen("tcp", ":10001")
