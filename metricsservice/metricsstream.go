@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"encoding/json"
+
 	ms "github.com/envoyproxy/go-control-plane/envoy/service/metrics/v2"
 	"github.com/fluent/fluent-logger-golang/fluent"
 	"google.golang.org/grpc"
@@ -19,13 +21,15 @@ type server struct {
 }
 
 // EnvoyLogFluentd is the json structure which we want to sent to fluentd
-type EnvoyLogFluentd struct {
-	Name string
-	Type string
-}
+// type EnvoyLogFluentd struct {
+// 	Name string
+// 	Type string
+// }
+
+var envoyMetricsPayload map[string]interface{}
 
 //envoyMetricsTagPrefix would be the tag used to send the metrics to fluentd service
-const envoyMetricsTagPrefix string = "envoy"
+const envoyMetricsTagPrefix string = "envoymetrics"
 
 //StreamMetrics receives the metrics from envoy and post extracting the relevant information
 // sends it to fluentd server
@@ -52,18 +56,21 @@ func (s *server) StreamMetrics(mtserver ms.MetricsService_StreamMetricsServer) e
 
 	//Gather all the metrices from current stream
 	envoyMetrics := streamMetricsMessage.GetEnvoyMetrics()
-	envoyIdentifier := streamMetricsMessage.GetIdentifier().String()
+	//envoyIdentifier := streamMetricsMessage.GetIdentifier().String()
 	for _, metric := range envoyMetrics {
 
 		//Extracts all the relevant information from the metric and post it to fluentd
-		envoyMetricFluentdLog := EnvoyLogFluentd{
-			Name: metric.GetName(),
-			Type: metric.GetType().String(),
-		}
+		// envoyMetricFluentdLog := EnvoyLogFluentd{
+		// 	Name: metric.GetName(),
+		// 	Type: metric.GetType().String(),
+		// }
 
-		e := fluentDLogger.Post(envoyMetricsTagPrefix+"."+envoyIdentifier, envoyMetricFluentdLog)
+		inrec, _ := json.Marshal(metric)
+		json.Unmarshal(inrec, &envoyMetricsPayload)
+
+		e := fluentDLogger.Post(envoyMetricsTagPrefix, envoyMetricsPayload)
 		if e != nil {
-			log.Println("Unable to post metrics data to fluentd for metric : ", envoyMetricFluentdLog.Name)
+			log.Printf("Unable to post metrics data to fluentd for metric %v \n", e)
 			return e
 		}
 
@@ -80,7 +87,7 @@ func acquireFluentDLogger() error {
 	log.Println("Attempting to initiate connection to fluentd server................")
 	var fluentdLogerrErr error
 	//5 attempts would be made at a gap of 5 seconds to establish connection with the fluentd service
-	err := retry(5, 5*time.Second, func() (err error) {
+	err := retry(10, 5*time.Second, func() (err error) {
 		fluentDLogger, fluentdLogerrErr = fluent.New(fluent.Config{FluentPort: 24224, FluentHost: "fluentd"})
 		return fluentdLogerrErr
 	})

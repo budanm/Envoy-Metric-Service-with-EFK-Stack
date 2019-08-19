@@ -2,7 +2,9 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4YnC6+E63dPcxHo2sUxDIu8g3QgEJdRY=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
+github.com/budanm/Envoy-Metric-Service-with-EFK-Stack/accesslogservice v0.0.0-20190819043133-f2aa40ff143f h1:uh0r0O0qO8ccHG14bCjrtPJH4lzwBsWYYKZQ3q4s2Fo=
 github.com/budanm/Envoy-Metric-Service-with-EFK-Stack/metricsservice v0.0.0-20190816101947-99d7758ad404 h1:ytpFeaenjI+4b6e5nwRFMlPKrvKPX/89X3Mo1qK1vus=
+github.com/budanm/Envoy-Metric-Service-with-EFK-Stack/metricsservice v0.0.0-20190819043133-f2aa40ff143f h1:S2Zl7I/iaSvspFULLxGEWLyEZFttnhchkdb2HJg5sfw=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/envoyproxy/go-control-plane v0.8.6 h1:qygnyt9M1DjMSKIvr4YZS76yt28JiAu/o2LFEA68bko=
 github.com/envoyproxy/go-control-plane v0.8.6/go.mod h1:XB9+ce7x+IrsjgIVnRnql0O61gj/np0/bGDfhJI3sCU=

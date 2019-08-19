@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"encoding/json"
+
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v2"
 	"github.com/fluent/fluent-logger-golang/fluent"
 	"google.golang.org/grpc"
@@ -17,13 +19,14 @@ type accesslogserver struct {
 }
 
 // EnvoyAccessLogFluentd is the json structure which we want to sent to fluentd
-type EnvoyAccessLogFluentd struct {
-	RouteName       string
-	UpstreamCluster string
-}
+// type EnvoyAccessLogFluentd struct {
+// 	RouteName       string
+// 	UpstreamCluster string
+// 	Metadata        string
+// }
 
 var fluentDLogger *fluent.Fluent
-var envoyAccessLogFluentd EnvoyAccessLogFluentd
+var envoyAccessLogPayload map[string]interface{}
 
 func (als *accesslogserver) StreamAccessLogs(alserver accesslog.AccessLogService_StreamAccessLogsServer) error {
 
@@ -47,17 +50,27 @@ func (als *accesslogserver) StreamAccessLogs(alserver accesslog.AccessLogService
 	}
 
 	envoyAccessLogs := accesslogStreamMessage.GetHttpLogs()
+	//accesslogStreamMessage.GetTcpLogs()
 	envoyAccessLogsIdentifier := accesslogStreamMessage.GetIdentifier()
 
 	for _, httpLog := range envoyAccessLogs.GetLogEntry() {
 
-		commonProps := httpLog.GetCommonProperties()
-		envoyAccessLogFluentd = EnvoyAccessLogFluentd{
-			RouteName:       commonProps.GetRouteName(),
-			UpstreamCluster: commonProps.GetUpstreamCluster(),
-		}
+		//commonProps := httpLog.GetCommonProperties()
+		//commonProps.GetDownstreamLocalAddress().GetSocketAddress().GetResolverName()
+		//commonProps.GetDownstreamRemoteAddress().GetSocketAddress().GetResolverName()
+		// envoyAccessLogFluentd = EnvoyAccessLogFluentd{
+		// 	RouteName:       commonProps.GetRouteName(),
+		// 	UpstreamCluster: commonProps.GetUpstreamCluster(),
+		// 	Metadata:        commonProps.GetMetadata().String(),
+		// }
 
-		e := fluentDLogger.Post(envoyAccessLogsIdentifier.GetLogName(), envoyAccessLogFluentd)
+		//httpLog.GetCommonProperties()
+
+		inrec, _ := json.Marshal(httpLog)
+		json.Unmarshal(inrec, &envoyAccessLogPayload)
+
+		e := fluentDLogger.Post(envoyAccessLogsIdentifier.GetLogName(), envoyAccessLogPayload)
+
 		if e != nil {
 			log.Printf("Unable to post access Log %v", e)
 			return e
@@ -75,7 +88,7 @@ func acquireFluentDLogger() error {
 	log.Println("Attempting to initiate connection to fluentd server................")
 	var fluentdLogerrErr error
 	//5 attempts would be made at a gap of 5 seconds to establish connection with the fluentd service
-	err := retry(5, 5*time.Second, func() (err error) {
+	err := retry(10, 5*time.Second, func() (err error) {
 		fluentDLogger, fluentdLogerrErr = fluent.New(fluent.Config{FluentPort: 24224, FluentHost: "fluentd"})
 		return fluentdLogerrErr
 	})
